@@ -1,40 +1,123 @@
-### Documentation is included in the Documentation folder ###
+# EMS Restart Service - UiPath RPA
 
-[REFrameWork Documentation](https://github.com/UiPath/ReFrameWork/blob/master/Documentation/REFramework%20documentation.pdf)
+This RPA project automates the process of remotely accessing the EMS (Enterprise Messaging System) server and restarting specific Windows services based on alerts received from **EMS inactive email notifications**. It uses **Computer Vision (CV)** to interact with the RDP interface, making it robust in environments where selectors are not available.
 
-### REFrameWork Template ###
-**Robotic Enterprise Framework**
+The process is **triggered automatically** by an **Outlook webhook** when a matching email arrives.
 
-* Built on top of *Transactional Business Process* template
-* Uses *State Machine* layout for the phases of automation project
-* Offers high level logging, exception handling and recovery
-* Keeps external settings in *Config.xlsx* file and Orchestrator assets
-* Pulls credentials from Orchestrator assets and *Windows Credential Manager*
-* Gets transaction data from Orchestrator queue and updates back status
-* Takes screenshots in case of system exceptions
+---
 
+## Project Description
 
-### How It Works ###
+When an EMS inactive alert email is received, an Outlook-integrated webhook triggers this automation. The bot opens a Remote Desktop (RDP) session to the EMS server and uses **UiPath Computer Vision** to locate and restart specific Windows services. Email notifications are then sent to confirm whether the process succeeded or failed.
 
-1. **INITIALIZE PROCESS**
- + ./Framework/*InitiAllSettings* - Load configuration data from Config.xlsx file and from assets
- + ./Framework/*GetAppCredential* - Retrieve credentials from Orchestrator assets or local Windows Credential Manager
- + ./Framework/*InitiAllApplications* - Open and login to applications used throughout the process
+---
 
-2. **GET TRANSACTION DATA**
- + ./Framework/*GetTransactionData* - Fetches transactions from an Orchestrator queue defined by Config("OrchestratorQueueName") or any other configured data source
+## Key Features
 
-3. **PROCESS TRANSACTION**
- + *Process* - Process trasaction and invoke other workflows related to the process being automated 
- + ./Framework/*SetTransactionStatus* - Updates the status of the processed transaction (Orchestrator transactions by default): Success, Business Rule Exception or System Exception
+- Auto-triggered via **Outlook webhook**
+- **Computer Vision-based automation** inside RDP
+- Remote Windows service restart using `services.msc`
+- Configurable services and credentials
+- Success and failure email notification
+- REFramework for reliability and modularity
 
-4. **END PROCESS**
- + ./Framework/*CloseAllApplications* - Logs out and closes applications used throughout the process
+---
 
+## Project Structure
 
-### For New Project ###
+| Folder/File                  | Description                                                   |
+|------------------------------|---------------------------------------------------------------|
+| Main.xaml                    | Main entry point for the automation                          |
+| Modular/RDP.xaml             | Opens and handles RDP session                                |
+| Modular/EmailProcessing.xaml | Extracts and filters alert emails                            |
+| Modular/EmailSuccess.xaml    | Sends success notification email                             |
+| Modular/EmailError.xaml      | Sends error notification email                               |
+| Framework/                   | REFramework components                                        |
+| Data/Config.xlsx             | Configuration for services, server name, credentials         |
+| project.json                 | UiPath project metadata                                       |
+| README.md                    | Project documentation                                         |
 
-1. Check the Config.xlsx file and add/customize any required fields and values
-2. Implement InitiAllApplications.xaml and CloseAllApplicatoins.xaml workflows, linking them in the Config.xlsx fields
-3. Implement GetTransactionData.xaml and SetTransactionStatus.xaml according to the transaction type being used (Orchestrator queues by default)
-4. Implement Process.xaml workflow and invoke other workflows related to the process being automated
+---
+
+## Process Workflow
+
+### 1. **Trigger via Webhook**
+- Email with subject like `EMS Inactive` is received
+- Outlook webhook triggers bot execution
+
+### 2. **Initialization**
+- Read values from `Config.xlsx`:
+  - Server credentials
+  - Target services
+  - Email parameters
+
+### 3. **Remote Access (RDP)**
+- `RDP.xaml` opens RDP session
+- Waits for full remote desktop load
+
+### 4. **Service Restart using CV**
+- Launches `services.msc` inside RDP
+- Uses **UiPath Computer Vision** to:
+  - Locate service name
+  - Right-click > Restart
+- Repeat for all services listed in config
+
+### 5. **Notification**
+- On success: `EmailSuccess.xaml` sends confirmation  
+- On failure: `EmailError.xaml` sends error report
+
+### 6. **Logging & Error Handling**
+- Take screenshots during error
+- REFramework logs all steps
+- Retry logic for recoverable steps (e.g., CV lag)
+
+---
+
+## How to Run
+
+> Triggered via **Outlook webhook** integration (real-time)
+
+Manual test:
+
+1. Open in **UiPath Studio**
+2. Configure `Config.xlsx`:
+   - Email subject trigger
+   - Server credentials
+   - Services to restart
+3. Simulate alert email or run manually
+4. Optionally deploy to **Orchestrator** for monitoring/logging
+
+---
+
+## Exception Handling
+
+- **Business Exceptions**:
+  - No EMS email found
+  - Service not visible via CV
+- **System Exceptions**:
+  - RDP disconnect
+  - CV error (element not found, timeout)
+- Logs:
+  - Screenshots during error
+  - Detailed exception message
+- Email sent via `EmailError.xaml` for any failure
+
+---
+
+## Requirements
+
+- UiPath Studio (Enterprise)
+- Computer Vision package and API key (optional for cloud CV)
+- RDP access to EMS server
+- `services.msc` available on remote machine
+- Outlook webhook or Power Automate integration
+- Admin rights to restart services
+
+---
+
+## Contact
+
+For questions, improvements, or collaboration:
+
+- **Email:** fadillah650@gmail.com  
+- **LinkedIn:** [Enrico Naufal Fadilla](https://linkedin.com/in/enrico-naufal-fadilla-54338a256)
